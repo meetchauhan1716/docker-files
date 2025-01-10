@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  clickhouse-server:
+    image: yandex/clickhouse-server:latest
+    container_name: clickhouse-server
+    environment:
+      - CLICKHOUSE_DB=mydatabase  # Default database name
+      - CLICKHOUSE_USER=default   # Default username
+      - CLICKHOUSE_PASSWORD=default  # Default password
+    ports:
+      - "9000:9000"  # TCP port for client connections
+      - "8123:8123"  # HTTP interface port
+      - "9009:9009"  # Native TCP interface for inter-server communication
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse  # Data persistence
+    networks:
+      - clickhouse-net
+    restart: unless-stopped
+
+networks:
+  clickhouse-net:
+    driver: bridge
+
+volumes:
+  clickhouse-data:
+    driver: local

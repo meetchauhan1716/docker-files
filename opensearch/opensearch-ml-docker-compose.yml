@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  opensearch-node1:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-node1
+    environment:
+      - cluster.name=opensearch-ml-cluster
+      - node.name=opensearch-node1
+      - discovery.seed_hosts=opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms8g -Xmx8g" # Increased memory for ML workloads
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=false"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=YourSecurePassword123  # Set Your Password
+      - plugins.ml_commons.only_run_on_ml_node=true # Restrict ML tasks to this node
+      - plugins.ml_commons.model_access_control_enabled=true
+      - plugins.ml_commons.native_memory_threshold=99
+      - plugins.ml_commons.model_max_size_percentage=0.5
+      - plugins.ml_commons.worker_threads=4
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data1:/usr/share/opensearch/data
+      - ./models:/usr/share/opensearch/models  # Volume for pre-trained models
+    ports:
+      - 9200:9200
+      - 9600:9600
+    command: >
+      /bin/bash -c "
+        if [ ! -d /usr/share/opensearch/plugins/opensearch-ml ]; then
+          ./bin/opensearch-plugin install --batch opensearch-ml
+        fi
+        /usr/share/opensearch/opensearch-docker-entrypoint.sh
+      "
+    networks:
+      - opensearch-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  opensearch-node2:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-node2
+    environment:
+      - cluster.name=opensearch-ml-cluster
+      - node.name=opensearch-node2
+      - discovery.seed_hosts=opensearch-node1
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms8g -Xmx8g" # Increased memory for ML workloads
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=false"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=YourSecurePassword123     # Set Your Password
+      - plugins.ml_commons.only_run_on_ml_node=true # Restrict ML tasks to this node
+      - plugins.ml_commons.model_access_control_enabled=true
+      - plugins.ml_commons.native_memory_threshold=99
+      - plugins.ml_commons.model_max_size_percentage=0.5
+      - plugins.ml_commons.worker_threads=4
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data2:/usr/share/opensearch/data
+      - ./models:/usr/share/opensearch/models  # Volume for pre-trained models
+    ports:
+      - 9201:9200
+      - 9601:9600
+    command: >
+      /bin/bash -c "
+        if [ ! -d /usr/share/opensearch/plugins/opensearch-ml ]; then
+          ./bin/opensearch-plugin install --batch opensearch-ml
+        fi
+        /usr/share/opensearch/opensearch-docker-entrypoint.sh
+      "
+    networks:
+      - opensearch-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  opensearch-data1:
+  opensearch-data2:
+
+networks:
+  opensearch-net:
+    driver: bridge

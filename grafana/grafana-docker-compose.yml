@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Set the admin password for Grafana (change as needed)
+      - GF_SERVER_ROOT_URL=http://localhost:3000  # Define the root URL
+    ports:
+      - "3000:3000"  # Expose Grafana's default web interface port
+    volumes:
+      - grafana-data:/var/lib/grafana  # Persistent data volume for dashboards and configurations
+    networks:
+      - grafana-net
+    restart: unless-stopped
+
+networks:
+  grafana-net:
+    driver: bridge
+
+volumes:
+  grafana-data:
+    driver: local
